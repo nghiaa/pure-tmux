@@ -5,9 +5,10 @@ set -e
 script_dir="$(dirname "$0")"
 script_dir="$(cd "$script_dir"; pwd)"
 
-ignored_things=" install.sh tmux tpm README.md "
+tmux_dir="$script_dir/tmux"
+plugin_dir="$HOME/.tmux/plugins"
 
-plugin_dir="$HOME/.tmux/plugins/"
+ignored_things=" install.sh tmux tpm README.md "
 
 init_submodules() {
     git submodule init
@@ -29,38 +30,33 @@ install() {
         echo "tmux already installed!"
         return
     fi
-
-    printf "\033[1;32;49m=== Type Y/y to install tmux: \033[0m"
-    read -n 1 c; echo '';
-    if [[ !( " y Y " =~ " $c " ) ]]; then
-        return
-    fi
+    
+    printf "\033[1;33;49mInstalling necessary packages...\n\033[0m"
+    sudo apt update
+    sudo apt -y install autoconf automake autotools-dev \
+                        bison cmake build-essential \
+                        libncurses5-dev libevent-dev pkg-config
 
     create-symlinks
 
     (echo "Installing tmux..."; \
-    cd "$script_dir"; \
+    cd "$tmux_dir"; \
     init_submodules; \
     compile_tmux; \
     sudo make install; \
+    $plugin_dir/tpm/scripts/install_plugins.sh; \
     echo "tmux installed successfully!")
 }
 
 uninstall() {
-    printf "\033[1;31;49m=== Do you want to uninstall tmux (Y/y)? \033[0m"
-    read -n 1 c; echo ''
-    if [[ !( " y Y " =~ " $c " ) ]]; then
-        return
-    fi
-
     remove-symlinks
 
     (echo "Uninstalling tmux..."; \
-    cd "$script_dir"; \
+    cd "$tmux_dir"; \
     init_submodules; \
     compile_tmux; \
     sudo make uninstall; \
-    echo "tmux installed successfully!")
+    echo "tmux uninstalled successfully!")
 }
 
 create-symlinks() {
