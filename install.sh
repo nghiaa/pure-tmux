@@ -8,7 +8,7 @@ script_dir="$(cd "$script_dir"; pwd)"
 tmux_dir="$script_dir/tmux"
 plugin_dir="$HOME/.tmux/plugins"
 
-ignored_things=" install.sh tmux tpm README.md "
+ignored_things=" install.sh remove-symlinks.sh tmux tpm README.md "
 
 init_submodules() {
     git submodule init
@@ -26,26 +26,29 @@ compile_tmux() {
 }
 
 install() {
-    if which tmux; then
-        echo "tmux already installed!"
-        return
+    if [[ `uname` == 'Linux' ]]; then
+        printf "\033[1;33;49mInstalling necessary packages...\n\033[0m"
+        sudo apt update
+        sudo apt -y install autoconf automake autotools-dev \
+                            bison cmake build-essential \
+                            libncurses5-dev libevent-dev pkg-config
     fi
     
-    printf "\033[1;33;49mInstalling necessary packages...\n\033[0m"
-    sudo apt update
-    sudo apt -y install autoconf automake autotools-dev \
-                        bison cmake build-essential \
-                        libncurses5-dev libevent-dev pkg-config
-
     create-symlinks
+    ( cd "$tmux_dir"; init_submodules )
 
-    (echo "Installing tmux..."; \
-    cd "$tmux_dir"; \
-    init_submodules; \
-    compile_tmux; \
-    sudo make install; \
-    $plugin_dir/tpm/scripts/install_plugins.sh; \
-    echo "tmux installed successfully!")
+    if which tmux; then
+        echo "tmux already installed!"
+    else
+        (echo "Installing tmux..."; \
+        compile_tmux; \
+        sudo make install; \
+        echo "tmux installed successfully!")
+    fi
+
+    if $(ps -e | grep tmux); then tmux source ~/.tmux.conf; fi
+
+    $plugin_dir/tpm/scripts/install_plugins.sh
 }
 
 uninstall() {
